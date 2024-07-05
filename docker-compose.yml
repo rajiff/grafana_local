@@ -1,0 +1,46 @@
+networks:
+  grafana:
+
+services:
+  grafana:
+    image: grafana/grafana-oss:11.1.0
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      - TERM=linux
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin # grants admin role to anonymous access
+      - GF_AUTH_ANONYMOUS_ENABLED=true # removes login 1/2
+      - GF_AUTH_BASIC_ENABLED=false # removes login 2/2
+      - GF_LOG_LEVEL=info
+      - GF_INSTALL_PLUGINS=grafana-clock-panel, grafana-simple-json-datasource
+      - GF_FEATURE_TOGGLES_ENABLE=alertingSimplifiedRouting
+    ports:
+      - 3000:3000
+    volumes:
+      - '$PWD/grafana_storage:/var/lib/grafana'
+      - '$PWD/grafana_storage/provisioning/datasources:/etc/grafana/provisioning/datasources'
+    networks:
+      - grafana
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+    ports:
+      - 9090:9090
+    volumes:
+      - '$PWD/prometheus/:/etc/prometheus/'
+    networks:
+      - grafana
+
+  loki:
+    image: grafana/loki:2.9.9
+    ports:
+      - 3100:3100
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - grafana
+
+volumes:
+  grafana_storage: {}
